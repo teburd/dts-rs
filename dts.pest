@@ -1,0 +1,77 @@
+dts = _{
+	SOI ~ dts_version ~ memreserve? ~ root_node ~ EOI
+}
+
+dts_version = {
+	"/dts-v" ~ ASCII_DIGIT ~ "/;"
+}
+
+hex_value = {
+	"0x" ~ ASCII_HEX_DIGIT+
+}
+
+decimal_value = {
+	ASCII_DIGIT+
+}
+
+numerical_value = {
+	hex_value | decimal_value
+}
+
+memreserve = {
+	"/memreserve " ~ hex_value ~ hex_value ~ "/;"
+}
+
+
+label = {
+	(ASCII_ALPHANUMERIC | "_")+
+}
+
+node_name = {
+	(ASCII_ALPHANUMERIC | "," | "." | "_" | "+" | "-")+
+}
+
+property_name = {
+	"#"? ~ node_name
+}
+
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+inner = @{ char* }
+
+string = { "\"" ~ inner ~ "\"" }
+string_list = { string ~ ("," ~ string)* }
+
+reference = @{ "&" ~ node_name }
+phandle_array = { "<" ~ reference* ~ ">" }
+
+decimal_cell = @{ !"0x" ~ ASCII_DIGIT+ }
+hex_cell = @{ &"0x" ~ ASCII_HEX_DIGIT+ }
+cell = @{ decimal_cell | hex_cell }
+cell_array = { "<" ~ cell+ ~ ">" }
+
+value = {
+	reference | string_list | phandle_array | cell_array
+}
+
+property = {
+	(label ~ ":")? ~ property_name ~ ("=" ~ value)? ~ ";"
+}
+
+unit_address = {
+	ASCII_HEX_DIGIT{1,8}
+}
+
+node = {
+	(label ~ ":")? ~ node_name ~ ("@" ~ unit_address)?  ~ "{" ~ (property | node)* ~ "};"
+}
+
+root_node = {
+	"/" ~ "{" ~ (property | node)+ ~ "}"
+}
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
